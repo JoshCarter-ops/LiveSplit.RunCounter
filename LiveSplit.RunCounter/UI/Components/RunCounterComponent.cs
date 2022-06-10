@@ -12,8 +12,11 @@ namespace LiveSplit.UI.Components
     {
         protected InfoTextComponent InternalComponent { get; set; }
         public RunCounterSettings Settings { get; set; }
+        public GraphicsCache Cache { get; set; }
         protected LiveSplitState CurrentState { get; set; }
         public string ComponentName => "Run Counter";
+        private int counterValue = 0;
+        private string counterField = "xx Runs: ";
 
         public float HorizontalWidth => InternalComponent.HorizontalWidth;
         public float MinimumWidth => InternalComponent.MinimumWidth;
@@ -29,7 +32,10 @@ namespace LiveSplit.UI.Components
 
         public RunCounterComponent(LiveSplitState state)
         {
-
+            Settings = new RunCounterSettings();
+            Cache = new GraphicsCache();
+            InternalComponent = new InfoTextComponent("xx Runs: ", "0");
+            CurrentState = state;
         }
 
         public void DrawHorizontal(Graphics g, LiveSplitState state, float height, Region clipRegion)
@@ -76,7 +82,10 @@ namespace LiveSplit.UI.Components
 
         public void Update(IInvalidator invalidator, LiveSplitState state, float width, float height, LayoutMode mode)
         {
-
+            string count = GetSimilarTimeCount(getPBTime()).ToString();
+            InternalComponent.InformationName = counterField;
+            InternalComponent.InformationValue = counterValue >= 0 ? count : "?";
+            InternalComponent.Update(invalidator, state, width, height, mode);
         }
 
         public void Dispose()
@@ -85,5 +94,61 @@ namespace LiveSplit.UI.Components
         }
 
         public int GetSettingsHashCode() => Settings.GetSettingsHashCode();
+
+
+        // Lets get the PB Time to track
+        private Attempt getPBTime()
+        {
+            var bestTime = TimeSpan.MaxValue;
+            int bestIndex = 0;
+
+            if (CurrentState.Run.AttemptHistory.Count <= 0)
+            {
+                Attempt TempAttempt = new Attempt();
+                TempAttempt.Index = 0;
+                return TempAttempt;
+            }
+
+            foreach (Attempt attempt in CurrentState.Run.AttemptHistory)
+            {
+                if (attempt.Time[CurrentState.CurrentTimingMethod].HasValue)
+                {
+                    if (attempt.Time[CurrentState.CurrentTimingMethod].Value < bestTime)
+                    {
+                        bestTime = attempt.Time[CurrentState.CurrentTimingMethod].Value;
+                        bestIndex = attempt.Index;
+                    }
+                }
+            }
+
+            if (bestIndex == 0)
+                return CurrentState.Run.AttemptHistory[0];
+            return CurrentState.Run.AttemptHistory[bestIndex - 1];
+        }
+
+        private int GetSimilarTimeCount(Attempt pbAttempt)
+        {
+            int tempCounter = 0;
+            string pbdays = pbAttempt.Duration.Value.Days.ToString(); // get the days (for really long pbs)
+            string pbhour = pbAttempt.Duration.Value.Hours.ToString(); // get the hour value (for long pbs)
+            string pbmin = pbAttempt.Duration.Value.Minutes.ToString(); // get the min value (for all pbs)
+
+            counterField = pbhour + ":" + pbmin + ":xx Runs: ";
+
+            foreach (Attempt attempt in CurrentState.Run.AttemptHistory) {
+
+                // get the attempts that match the same hour and minuite barriers so that any game can use this
+                 string tempd = attempt.Duration.Value.Days.ToString();
+                 string temph = attempt.Duration.Value.Hours.ToString();
+                 string tempm = attempt.Duration.Value.Minutes.ToString();
+
+                if (pbdays.Equals(tempd) && pbhour.Equals(temph) && pbmin.Equals(tempm))
+                {
+                    tempCounter++;
+                }
+            }
+
+            return tempCounter;
+        }
     }
 }
