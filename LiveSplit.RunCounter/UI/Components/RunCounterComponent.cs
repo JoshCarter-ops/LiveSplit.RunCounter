@@ -16,7 +16,7 @@ namespace LiveSplit.UI.Components
         protected LiveSplitState CurrentState { get; set; }
         public string ComponentName => "Run Counter";
         private int counterValue = 0;
-        private string counterField = "xx Runs: ";
+        private string counterField = "xx Runs";
 
         public float HorizontalWidth => InternalComponent.HorizontalWidth;
         public float MinimumWidth => InternalComponent.MinimumWidth;
@@ -34,7 +34,7 @@ namespace LiveSplit.UI.Components
         {
             Settings = new RunCounterSettings();
             Cache = new GraphicsCache();
-            InternalComponent = new InfoTextComponent("xx Runs: ", "0");
+            InternalComponent = new InfoTextComponent("xx Runs", "0");
             CurrentState = state;
         }
 
@@ -133,7 +133,9 @@ namespace LiveSplit.UI.Components
             string pbhour = pbAttempt.Duration.Value.Hours.ToString(); // get the hour value (for long pbs)
             string pbmin = pbAttempt.Duration.Value.Minutes.ToString(); // get the min value (for all pbs)
 
-            counterField = pbhour + ":" + pbmin + ":xx Runs: ";
+            counterField = (pbhour.Length.Equals(1) ? (pbhour.Equals("0") ? "" : "0" + pbhour + ":") : pbhour);
+            counterField += (pbmin.Length.Equals(1) ? (pbmin.Equals("0") ? "" : "0" + pbmin) : pbmin);
+            counterField += ":xx's";
 
             foreach (Attempt attempt in CurrentState.Run.AttemptHistory) {
 
